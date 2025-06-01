@@ -1,5 +1,5 @@
-flask
 requests
 beautifulsoup4
-google-cloud-firestore
 python-telegram-bot
+schedule
+python-dotenv
