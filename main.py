@@ -1,3 +1,5 @@
+send_telegram_message("Test mesajı: Bot çalışıyor!")
+
 import time
 from flask import Flask
 from threading import Thread
