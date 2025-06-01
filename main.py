@@ -66,22 +66,11 @@ def save_last_announcements(last_announcements):
 def fetch_announcement(url):
     """Belirtilen URL'den en son duyuruyu çeker."""
     try:
-        response = requests.get(url, timeout=30)
+        response = requests.get(url, timeout=30, verify=False)  # SSL doğrulamasını devre dışı bırak
         soup = BeautifulSoup(response.content, 'html.parser')
-        if 'firat.edu.tr/tr/page/announcement' in url:
-            announcements = soup.find_all('div', class_='announcement-list-item')
-            if announcements:
-                title = announcements[0].find('h3').text.strip()
-                date = announcements[0].find('span', class_='date').text.strip()
-                return {'title': title, 'date': date}
-        else:
-            announcements = soup.find_all('div', class_='views-row')
-            if announcements:
-                title_elem = announcements[0].find('span', class_='field-content')
-                date_elem = announcements[0].find('div', class_='views-field-created')
-                if title_elem and date_elem:
-                    return {'title': title_elem.text.strip(), 'date': date_elem.text.strip()}
-        return None
+        # Mevcut kod devam eder...
+    except Exception as e:
+        print(f"Hata: {url} adresinden duyuru çekilemedi: {e}")
     except Exception as e:
         print(f"Hata: {url} adresinden duyuru çekilemedi: {e}")
         return None
