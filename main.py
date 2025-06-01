@@ -9,7 +9,7 @@ import asyncio
 import json
 import random
 
-# Ortam değişkenlerini yükle (Render'da ayarladığınız ortam değişkenleri)
+# Ortam değişkenlerini yükle
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
 
@@ -47,7 +47,7 @@ FACULTIES = {
     'Sağlık Bilimleri Enstitüsü': 'https://saglik.firat.edu.tr/tr/announcements-all',
     'Sosyal Bilimler Enstitüsü': 'https://sosyal.firat.edu.tr/tr/announcements-all',
     'Yabancı Diller Yüksekokulu': 'https://yabancidiller.firat.edu.tr/tr/announcements-all',
-    'Devರೀಕರಣಗೊಂಗು:Devlet Konservatuvarı': 'https://kyo.firat.edu.tr/tr/announcements-all',
+    'Devlet Konservatuvarı': 'https://kyo.firat.edu.tr/tr/announcements-all',
     'Sivil Havacılık Yüksekokulu': 'https://sivilhavacilik.firat.edu.tr/tr/announcements-all',
     'Sosyal Tesisler İktisadi İşletmesi': 'https://sosyaltesisler.firat.edu.tr/announcements-all'
 }
@@ -68,7 +68,7 @@ def save_last_announcements(last_announcements):
 def fetch_announcement(url):
     """Belirtilen URL'den en son duyuruyu çeker (SSL doğrulamasını devre dışı bırakır)."""
     try:
-        response = requests.get(url, timeout=30, verify=False)  # SSL doğrulamasını devre dışı bırak
+        response = requests.get(url, timeout=30, verify=False)
         soup = BeautifulSoup(response.content, 'html.parser')
         if 'firat.edu.tr/tr/page/announcement' in url:
             announcements = soup.find_all('div', class_='announcement-list-item')
