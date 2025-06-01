@@ -5,14 +5,16 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 from telegram import Bot
-from dotenv import load_dotenv
+import asyncio
 import json
+import random
 
-# Ortam değişkenlerini yükle
-load_dotenv()
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-bot = Bot(token=TELEGRAM_BOT_TOKEN)
+# Ortam değişkenlerini yükle (Render'da ayarladığınız ortam değişkenleri)
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
+
+# Botu başlat
+bot = Bot(TELEGRAM_BOT_TOKEN)
 
 # Fakülte ve duyuru URL'leri
 FACULTIES = {
@@ -43,9 +45,9 @@ FACULTIES = {
     'Eğitim Bilimleri Enstitüsü': 'https://egitim.firat.edu.tr/tr/announcements-all',
     'Fen Bilimleri Enstitüsü': 'https://fen.firat.edu.tr/tr/announcements-all',
     'Sağlık Bilimleri Enstitüsü': 'https://saglik.firat.edu.tr/tr/announcements-all',
-    'Sosyal Bilimler Enstitüsü': 'https://sosyal.firat.edu.tr/announcements-all',
+    'Sosyal Bilimler Enstitüsü': 'https://sosyal.firat.edu.tr/tr/announcements-all',
     'Yabancı Diller Yüksekokulu': 'https://yabancidiller.firat.edu.tr/tr/announcements-all',
-    'Devlet Konservatuvarı': 'https://kyo.firat.edu.tr/tr/announcements-all',
+    'Devರೀಕರಣಗೊಂಗು:Devlet Konservatuvarı': 'https://kyo.firat.edu.tr/tr/announcements-all',
     'Sivil Havacılık Yüksekokulu': 'https://sivilhavacilik.firat.edu.tr/tr/announcements-all',
     'Sosyal Tesisler İktisadi İşletmesi': 'https://sosyaltesisler.firat.edu.tr/announcements-all'
 }
@@ -64,23 +66,39 @@ def save_last_announcements(last_announcements):
         json.dump(last_announcements, f)
 
 def fetch_announcement(url):
-    """Belirtilen URL'den en son duyuruyu çeker."""
+    """Belirtilen URL'den en son duyuruyu çeker (SSL doğrulamasını devre dışı bırakır)."""
     try:
         response = requests.get(url, timeout=30, verify=False)  # SSL doğrulamasını devre dışı bırak
         soup = BeautifulSoup(response.content, 'html.parser')
-        # Mevcut kod devam eder...
-    except Exception as e:
-        print(f"Hata: {url} adresinden duyuru çekilemedi: {e}")
+        if 'firat.edu.tr/tr/page/announcement' in url:
+            announcements = soup.find_all('div', class_='announcement-list-item')
+            if announcements:
+                title = announcements[0].find('h3').text.strip()
+                date = announcements[0].find('span', class_='date').text.strip()
+                return {'title': title, 'date': date}
+        else:
+            announcements = soup.find_all('div', class_='views-row')
+            if announcements:
+                title_elem = announcements[0].find('span', class_='field-content')
+                date_elem = announcements[0].find('div', class_='views-field-created')
+                if title_elem and date_elem:
+                    return {'title': title_elem.text.strip(), 'date': date_elem.text.strip()}
+        return None
     except Exception as e:
         print(f"Hata: {url} adresinden duyuru çekilemedi: {e}")
         return None
 
-def send_telegram_message(message):
-    """Telegram'a mesaj gönderir."""
+async def send_telegram_message(message):
+    """Telegram'a asenkron olarak mesaj gönderir."""
     try:
-        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message, parse_mode='HTML')
+        await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message, parse_mode='HTML')
     except Exception as e:
         print(f"Telegram mesajı gönderilemedi: {e}")
+
+def sync_send_telegram_message(message):
+    """Senkron bir wrapper ile asenkron mesaj gönderme fonksiyonunu çağırır."""
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(send_telegram_message(message))
 
 def check_announcements():
     """Tüm fakültelerin duyurularını kontrol eder ve yeni duyuru varsa bildirir."""
@@ -92,21 +110,23 @@ def check_announcements():
             current_announcement = f"{announcement['title']}_{announcement['date']}"
             if faculty_name not in last_announcements or last_announcements[faculty_name] != current_announcement:
                 message = f"🔔 <b>Yeni Duyuru!</b>\n\n📍 <b>Fakülte:</b> {faculty_name}\n📢 <b>Başlık:</b> {announcement['title']}\n📅 <b>Tarih:</b> {announcement['date']}"
-                send_telegram_message(message)
+                sync_send_telegram_message(message)
                 last_announcements[faculty_name] = current_announcement
     save_last_announcements(last_announcements)
     print(f"[{datetime.now()}] Kontrol tamamlandı.")
 
 def send_test_message():
     """Test mesajı gönderir."""
-    send_telegram_message("Test mesajı: Bot çalışıyor!")
+    sync_send_telegram_message("Test mesajı: Bot çalışıyor!")
 
-def send_latest_announcement_test(faculty_name, url):
-    """Belirtilen fakültenin son duyurusunu test amaçlı gönderir."""
+def send_latest_announcement_test():
+    """Rastgele bir fakültenin son duyurusunu test amaçlı gönderir."""
+    faculty_name = random.choice(list(FACULTIES.keys()))
+    url = FACULTIES[faculty_name]
     announcement = fetch_announcement(url)
     if announcement:
         message = f"Test: {faculty_name} fakültesinin son duyurusu\n📢 <b>Başlık:</b> {announcement['title']}\n📅 <b>Tarih:</b> {announcement['date']}"
-        send_telegram_message(message)
+        sync_send_telegram_message(message)
 
 def main():
     """Ana fonksiyon: Test mesajı, son duyuru testi ve periyodik kontrolleri başlatır."""
@@ -115,9 +135,8 @@ def main():
     # Test mesajı gönder
     send_test_message()
     
-    # İlk fakültenin son duyurusunu test amaçlı gönder
-    test_faculty = list(FACULTIES.keys())[0]  # Ana Site
-    send_latest_announcement_test(test_faculty, FACULTIES[test_faculty])
+    # Rastgele bir fakültenin son duyurusunu test amaçlı gönder
+    send_latest_announcement_test()
     
     # Her 3 dakikada bir duyuruları kontrol et
     schedule.every(3).minutes.do(check_announcements)
