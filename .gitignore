@@ -1,0 +1,13 @@
+# Python sanal ortamları
+venv/
+env/
+
+# Byte-code dosyaları
+__pycache__/
+*.py[cod]
+
+# Ortam değişkenleri
+.env
+
+# Log dosyaları
+*.log
